@@ -117,13 +117,24 @@ TEST(signal_testing, disconnect_in_emit)
     EXPECT_EQ(2, got3);
 }
 
-TEST(signal_testing, destroy_signal_before_connection)
+TEST(signal_testing, destroy_signal_before_connection_01)
 {
     auto sig = std::make_unique<signals::signal<void()>>();
     uint32_t got1 = 0;
     auto conn1 = sig->connect([&] { ++got1; });
 
     sig.reset();
+}
+
+TEST(signal_testing, destroy_signal_before_connection_02)
+{
+    auto sig = std::make_unique<signals::signal<void()>>();
+    uint32_t got1 = 0;
+    auto conn1_old = sig->connect([&] { ++got1; });
+
+    sig.reset();
+
+    auto conn1_new = std::move(conn1_old);
 }
 
 TEST(signal_testing, destroy_signal_in_emit)
