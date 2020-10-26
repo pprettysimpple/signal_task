@@ -144,7 +144,6 @@ namespace signals
 
     template <typename... Args>
     void signal<void(Args...)>::connection::replace_iteration_tokens_with_this(connection& rhs) noexcept {
-        assert(rhs.is_linked());
         swap_nodes(rhs);
         for (auto &token : rhs.sig->iteration_tokens) {
             if (token.current != rhs.sig->connections.end() && &(*(token.current)) == &rhs) {
@@ -169,7 +168,6 @@ namespace signals
         try {
             while (token.current != connections.end()) {
                 auto copy = token.current;
-                assert(token.current != connections.end());
                 ++token.current;
                 (copy->slot)(args...);
                 if (token.is_signal_deleted) {
