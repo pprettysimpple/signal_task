@@ -58,10 +58,16 @@ namespace signals
 
         struct iteration_token : slist_normal_link_hook {
             explicit iteration_token(typename connections_t::const_iterator current) noexcept
-            : current(current), is_signal_deleted(false) {}
+            : current(current), sig(current->sig) {}
+
+            ~iteration_token() {
+                if (sig != nullptr) {
+                    sig->iteration_tokens.pop_front();
+                }
+            }
 
             typename connections_t::const_iterator current;
-            bool is_signal_deleted;
+            signal *sig;
         };
 
         using iteration_tokens_t = boost::intrusive::slist<
@@ -165,26 +171,20 @@ namespace signals
     void signal<void(Args...)>::operator()(Args... args) const {
         iteration_token token(connections.begin());
         iteration_tokens.push_front(token);
-        try {
-            while (token.current != connections.end()) {
-                auto copy = token.current;
-                ++token.current;
-                (copy->slot)(args...);
-                if (token.is_signal_deleted) {
-                    return;
-                }
+        while (token.current != connections.end()) {
+            auto copy = token.current;
+            ++token.current;
+            (copy->slot)(args...);
+            if (token.sig == nullptr) {
+                return;
             }
-        } catch (...) {
-            iteration_tokens.pop_front();
-            throw;
         }
-        iteration_tokens.pop_front();
     }
 
     template <typename... Args>
     signal<void(Args...)>::~signal() noexcept {
         for (auto &token : iteration_tokens) {
-            token.is_signal_deleted = true;
+            token.sig = nullptr;
         }
     }
     // signal impl end
